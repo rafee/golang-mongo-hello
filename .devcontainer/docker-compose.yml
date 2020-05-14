@@ -1,0 +1,71 @@
+version: "3.7"
+# services:
+#   mongodb_container:
+#     hostname: mongodb_container
+#     image: mongo:4.2.6
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: rafee
+#       MONGO_INITDB_ROOT_PASSWORD: password
+#     ports:
+#       - 27017:27017
+#     volumes:
+#       - ./data/mongodb_container:/data/db
+services:
+  go:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+
+    volumes:
+      - ..:/workspace:cached
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+
+  mongo1:
+    hostname: mongo1
+    container_name: localmongo1
+    image: mongo:4.2.6
+    expose:
+      - 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rafee
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ../data/mongo1:/data/db
+    restart: always
+    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0"]
+  mongo2:
+    hostname: mongo2
+    container_name: localmongo2
+    image: mongo:4.2.6
+    expose:
+      - 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rafee
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ../data/mongo2:/data/db
+    restart: always
+    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0"]
+  mongo3:
+    hostname: mongo3
+    container_name: localmongo3
+    image: mongo:4.2.6
+    expose:
+      - 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rafee
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ../data/mongo3:/data/db
+    restart: always
+    entrypoint: ["/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0"]
