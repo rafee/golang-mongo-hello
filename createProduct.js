@@ -1,7 +1,4 @@
-
-username = process.env("MONGO_USERNAME");
-pwd = process.env("MONGO_USER_PASSWORD");
-uri = `mongodb+srv://${username}:${pwd}@cluster0-yyofy.gcp.mongodb.net/test?retryWrites=true&w=majority`;
+uri = 'mongodb+srv://rafee:s65Fau2VE0PIuwyt@cluster0-yyofy.gcp.mongodb.net/test?retryWrites=true&w=majority';
 conn = new Mongo(uri);
 db = conn.getDB("demo");
 collection = db.stock;
