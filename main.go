@@ -32,52 +32,62 @@ func main() {
 	uri := fmt.Sprintf("mongodb+srv://%s:%s@cluster0-yyofy.gcp.mongodb.net/test?retryWrites=true&w=majority", user, pwd)
 
 	// Connect to MongoDB
-	clientOptions := options.Client().ApplyURI(uri)
-	ctx := context.Background()
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Disconnect(ctx)
-
-	// Check the connection
-	err = client.Ping(context.TODO(), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to MongoDB!")
+	cancel()
 
-	stock := client.Database("demo").Collection("stock")
-	chgCtx, cancel := context.WithTimeout(ctx, 6*time.Second)
-	defer cancel()
-	changeStream, err := stock.Watch(chgCtx, mongo.Pipeline{})
+	db := "demo"
+	collec := "stock"
+	stock := client.Database(db).Collection(collec)
+	// Context will expire in 6 seconds. The change and receive will expire accordingly
+	chgCtx, chgCancel := context.WithTimeout(context.Background(), 6*time.Second)
+	// chgCancel will cancel the context before the application goes out of scope.
+	// This will be activated only when the application doesn't timeout in 6 sec
+	defer chgCancel()
+	matchPipeline := bson.D{
+		{
+			"$match", bson.D{
+				{"operationType", "insert"},
+				{"fullDocument.quantity", bson.D{
+					{"$gt", 20},
+				}},
+			},
+		},
+	}
+	chgStream, err := stock.Watch(chgCtx, mongo.Pipeline{matchPipeline})
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer changeStream.Close(chgCtx)
+	defer chgStream.Close(chgCtx)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	// Receive changes
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
 	// go createChange(stock)
-	go receiveChange(chgCtx, &wg, changeStream)
+	go receiveChange(chgCtx, &wg, chgStream)
 	wg.Wait()
 }
 
 func receiveChange(routineCtx context.Context, waitGroup *sync.WaitGroup, stream *mongo.ChangeStream) {
 	defer stream.Close(routineCtx)
 	defer waitGroup.Done()
-
-	for stream.Next(context.TODO()) {
-		fmt.Println("Nothing to see here")
+	for stream.Next(routineCtx) {
 		var data bson.M
 		if err := stream.Decode(&data); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println(data)
+	}
+
+	select {
+	case <-routineCtx.Done():
+		fmt.Println("Operation timed out")
+		return
 	}
 }
 
