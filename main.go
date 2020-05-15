@@ -53,7 +53,7 @@ func main() {
 			"$match", bson.D{
 				{"operationType", "insert"},
 				{"fullDocument.quantity", bson.D{
-					{"$gt", 20},
+					{"$gt", 15},
 				}},
 			},
 		},
