@@ -1,4 +1,6 @@
-uri = 'mongodb+srv://rafee:s65Fau2VE0PIuwyt@cluster0-yyofy.gcp.mongodb.net/test?retryWrites=true&w=majority';
+user = "rafee"
+pwd = "s65Fau2VE0PIuwyt"
+uri = `mongodb+srv://${user}:${pwd}@cluster0-yyofy.gcp.mongodb.net/test?retryWrites=true&w=majority`;
 conn = new Mongo(uri);
 db = conn.getDB("demo");
 collection = db.stock;

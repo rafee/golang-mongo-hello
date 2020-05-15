@@ -33,11 +33,12 @@ func main() {
 
 	// Connect to MongoDB
 	clientOptions := options.Client().ApplyURI(uri)
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+	ctx := context.Background()
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Disconnect(context.TODO())
+	defer client.Disconnect(ctx)
 
 	// Check the connection
 	err = client.Ping(context.TODO(), nil)
@@ -47,20 +48,22 @@ func main() {
 	fmt.Println("Connected to MongoDB!")
 
 	stock := client.Database("demo").Collection("stock")
-	changeStream, err := stock.Watch(context.TODO(), mongo.Pipeline{})
+	chgCtx, cancel := context.WithTimeout(ctx, 6*time.Second)
+	defer cancel()
+	changeStream, err := stock.Watch(chgCtx, mongo.Pipeline{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer changeStream.Close(context.TODO())
+	defer changeStream.Close(chgCtx)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	// Receive changes
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
 	// go createChange(stock)
-	go receiveChange(ctx, &wg, changeStream)
+	go receiveChange(chgCtx, &wg, changeStream)
 	wg.Wait()
 }
 
