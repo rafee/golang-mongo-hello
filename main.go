@@ -11,15 +11,24 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Fruit data type for inserting into collection
 type Fruit struct {
-	name     string
-	quantity int
+	ID       primitive.ObjectID
+	Name     string
+	Quantity int
 }
+
+// `json:"id" bson:"_id,omitempty"`
+// `json:"name" bson:"name,omitempty"`
+// `json:"quantity" bson:"quantity,omitempty"`
+// type ReceiveDocument struct{
+
+// }
 
 func main() {
 	err := godotenv.Load()
@@ -76,12 +85,22 @@ func main() {
 func receiveChange(routineCtx context.Context, waitGroup *sync.WaitGroup, stream *mongo.ChangeStream) {
 	defer stream.Close(routineCtx)
 	defer waitGroup.Done()
+
 	for stream.Next(routineCtx) {
 		var data bson.M
 		if err := stream.Decode(&data); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(data)
+		document := data["fullDocument"].(bson.M)
+		var fruit Fruit
+		bsonBytes, err := bson.Marshal(document)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := bson.Unmarshal(bsonBytes, &fruit); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(fruit.Quantity)
 	}
 
 	select {
@@ -92,9 +111,9 @@ func receiveChange(routineCtx context.Context, waitGroup *sync.WaitGroup, stream
 }
 
 func createChange(stock *mongo.Collection) {
-	fruit := Fruit{name: "Pineapple"}
+	fruit := Fruit{Name: "Pineapple"}
 	for true {
-		fruit.quantity = rand.Intn(99-10) + 10
+		fruit.Quantity = rand.Intn(99-10) + 10
 		fmt.Println("Inserting Value", fruit)
 		time.Sleep(2 * time.Second)
 	}

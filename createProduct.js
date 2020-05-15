@@ -1,5 +1,5 @@
-user = "rafee"
-pwd = "s65Fau2VE0PIuwyt"
+user = "javascript"
+pwd = "nlvqrllI5xCNMQ2K"
 uri = `mongodb+srv://${user}:${pwd}@cluster0-yyofy.gcp.mongodb.net/test?retryWrites=true&w=majority`;
 conn = new Mongo(uri);
 db = conn.getDB("demo");
